@@ -1,40 +1,60 @@
 'use strict';
 
-var page = require('webpage').create();
-var url = 'http://codeforces.com/contest/758/problem/D';
-var outputFilename = '758D.png';
+var webpage = require('webpage');
 
-page.onLoadStarted = function () {
-  console.log('onLoadStarted');
+var selectors = {
+	problemStatement: '.problem-statement',
+	problemList: '.problems .left a',
 };
-page.onLoadFinished = function () {
-  console.log('onLoadFinished');
+
+var captureElement = function (url, selector, filepath, cb) {
+	var page = webpage.create();
+	page.open(url, function (status) {
+		if (status !== 'success') {
+			cb('Failed to load URL: ' + url);
+			return;
+		}
+		var elementRect = page.evaluate(function (selector) {
+			return document.querySelector(selector).getBoundingClientRect();
+		}, selector);
+		page.clipRect = {
+			left: elementRect.left,
+			top: elementRect.top,
+			width: elementRect.width,
+			height: elementRect.height,
+		};
+		page.render(filepath);
+		cb(null);
+	});
 };
-page.viewportSize = {
-  width: 1920,
-  height: 1080,
+
+var retrieveProblems = function (contestId, cb) {
+	var page = webpage.create();
+	var url = 'http://codeforces.com/contest/' + contestId;
+	page.open(url, function (status) {
+		if (status !== 'success') {
+			cb('Failed to load URL: ' + url);
+			return;
+		}
+		var problemUrls = page.evaluate(function (selector) {
+			return [].map.call(document.querySelectorAll(selector), function (anchorElem) {
+				return anchorElem.href;
+			});
+		}, selectors.problemList);
+		cb(null, problemUrls.sort());
+	});
 };
-page.open(url, function (status) {
-  if (status !== 'success') {
-    console.error('Failed to load url: ', url);
-    return;
-  }
-  console.log('Timeout start');
-  window.setTimeout(function () {
-    var clipRect = page.evaluate(function () {
-      var targetElement = document.getElementsByClassName('problem-statement')[0];
-      return targetElement.getBoundingClientRect();
-    });
-    page.clipRect = {
-      top: clipRect.top,
-      left: clipRect.left,
-      width: clipRect.width,
-      height: clipRect.height,
-    };
-    console.log('render start');
-    page.render('test.png');
-    page.render('test.pdf');
-    console.log('render end');
-    phantom.exit();
-  }, 1000);
+
+retrieveProblems(758, function (err, urls) {
+	for (var i in urls) {
+		console.log(urls[i]);
+	}
+	phantom.exit();
 });
+
+/*
+captureElement('http://codeforces.com/contest/758/problem/D', selectors.problemStatement, 'kkk.png', function () {
+	phantom.exit();
+	console.log('done');
+});
+*/
