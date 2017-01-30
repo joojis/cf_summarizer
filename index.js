@@ -18,11 +18,12 @@ var captureElement = function (url, selector, filepath, cb) {
 		}
 		page.evaluate(function (selector) {
 			$(selector).parentsUntil('body').siblings().remove();
+			$('#pageContent').removeClass('content-with-sidebar');
 		}, selector);
 		page.paperSize = {
 			format: 'A4',
 			orientation: 'portrait',
-			margin: '1cm',
+			margin: '2cm',
 		};
 		page.render(filepath);
 		cb(null);
