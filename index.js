@@ -1,5 +1,6 @@
 'use strict';
 
+var async = require('async');
 var webpage = require('webpage');
 
 var selectors = {
@@ -28,6 +29,10 @@ var captureElement = function (url, selector, filepath, cb) {
 	});
 };
 
+var captureProblem = function (url, filepath, cb) {
+	captureElement(url, selectors.problemStatement, filepath, cb);
+};
+
 var retrieveProblems = function (contestId, cb) {
 	var page = webpage.create();
 	var url = 'http://codeforces.com/contest/' + contestId;
@@ -46,15 +51,22 @@ var retrieveProblems = function (contestId, cb) {
 };
 
 retrieveProblems(758, function (err, urls) {
-	for (var i in urls) {
-		console.log(urls[i]);
-	}
-	phantom.exit();
+	console.log('retrieveProblems: ', urls);
+	async.series(urls.map(function (url) {
+		var problemLetter = url.split('/').reverse()[0];
+		return function (cb) {
+			console.log('captureProblem', problemLetter, url);
+			captureProblem(url, '758' + problemLetter + '.png', function (err) {
+				console.log('captureProblem', problemLetter, 'done');
+				cb(err);
+			});
+		}
+	}), function (err, results) {
+		if (err) {
+			console.error(err)
+		} else {
+			console.log('done');
+		}
+		phantom.exit();
+	});
 });
-
-/*
-captureElement('http://codeforces.com/contest/758/problem/D', selectors.problemStatement, 'kkk.png', function () {
-	phantom.exit();
-	console.log('done');
-});
-*/
