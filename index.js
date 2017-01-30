@@ -3,7 +3,6 @@
 var async = require('async');
 var fs = require('fs');
 var webpage = require('webpage');
-var PDFDocument = require('pdfkit');
 
 var selectors = {
 	problemStatement: '.problem-statement',
@@ -17,14 +16,13 @@ var captureElement = function (url, selector, filepath, cb) {
 			cb('Failed to load URL: ' + url);
 			return;
 		}
-		var elementRect = page.evaluate(function (selector) {
-			return document.querySelector(selector).getBoundingClientRect();
+		page.evaluate(function (selector) {
+			$(selector).parentsUntil('body').siblings().remove();
 		}, selector);
-		page.clipRect = {
-			left: elementRect.left,
-			top: elementRect.top,
-			width: elementRect.width,
-			height: elementRect.height,
+		page.paperSize = {
+			format: 'A4',
+			orientation: 'portrait',
+			margin: '1cm',
 		};
 		page.render(filepath);
 		cb(null);
@@ -55,7 +53,7 @@ var retrieveProblems = function (contestId, cb) {
 // FIXME: contestId can be obtained from URL.
 var convertUrlToFilename = function (constestId, url) {
 	var problemLetter = url.split('/').reverse()[0];
-	return String(contestId) + problemLetter + '.png';
+	return String(contestId) + problemLetter + '.pdf';
 }
 
 var captureProblemSet = function (contestId, cb) {
@@ -86,4 +84,7 @@ var convertPNGsToPDF = function (pngFilepaths, pdfFilepath) {
 	doc.end();
 };
 
-convertPNGsToPDF(['758A.png', '758C.png'], '758.pdf');
+captureElement("http://codeforces.com/contest/758/problem/C", selectors.problemStatement, '758C_test.pdf', function () {
+	console.log('done!!!');
+	phantom.exit();
+});
