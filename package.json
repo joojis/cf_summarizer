@@ -10,6 +10,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "async": "^2.1.4",
+    "pdfkit": "^0.8.0",
     "phantomjs-prebuilt": "^2.1.14"
   }
 }

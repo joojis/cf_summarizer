@@ -1,7 +1,9 @@
 'use strict';
 
 var async = require('async');
+var fs = require('fs');
 var webpage = require('webpage');
+var PDFDocument = require('pdfkit');
 
 var selectors = {
 	problemStatement: '.problem-statement',
@@ -50,23 +52,38 @@ var retrieveProblems = function (contestId, cb) {
 	});
 };
 
-retrieveProblems(758, function (err, urls) {
-	console.log('retrieveProblems: ', urls);
-	async.series(urls.map(function (url) {
-		var problemLetter = url.split('/').reverse()[0];
-		return function (cb) {
-			console.log('captureProblem', problemLetter, url);
-			captureProblem(url, '758' + problemLetter + '.png', function (err) {
-				console.log('captureProblem', problemLetter, 'done');
-				cb(err);
-			});
-		}
-	}), function (err, results) {
-		if (err) {
-			console.error(err)
-		} else {
-			console.log('done');
-		}
-		phantom.exit();
+// FIXME: contestId can be obtained from URL.
+var convertUrlToFilename = function (constestId, url) {
+	var problemLetter = url.split('/').reverse()[0];
+	return String(contestId) + problemLetter + '.png';
+}
+
+var captureProblemSet = function (contestId, cb) {
+	retrieveProblems(contestId, function (err, urls) {
+		async.series(urls.map(function (url) {
+			return function (cb) {
+				captureProblem(url, convertUrlToFilename(contestId, url), function (err) {
+					cb(err);
+				});
+			}
+		}), function (err, results) {
+			if (err) {
+				console.error(err)
+			} else {
+				console.log('done');
+			}
+			phantom.exit();
+		});
 	});
-});
+};
+
+var convertPNGsToPDF = function (pngFilepaths, pdfFilepath) {
+	var doc = new PDFDocument();
+	doc.pipe(fs.createWriteStream(pdfFilepath));
+	pngFilepaths.forEach(function (pngFilepath) {
+		doc.image(pngFilepath, 0, 0);
+	});
+	doc.end();
+};
+
+convertPNGsToPDF(['758A.png', '758C.png'], '758.pdf');
